@@ -1,0 +1,11 @@
+*.pyc
+.*swp
+*.iml
+*.komodoproject
+.komodotools
+local_settings.py
+*.idea/*
+*.sqlite3
+sandbox/*
+*.mo
+/project/**/migrations/
