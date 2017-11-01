@@ -12,13 +12,13 @@ class GarbageStatus(object):
     STATUSES = {
         STATUS_DIRTY: 'Not cleaned',
         STATUS_IN_CLEANING: 'In cleaning',
-        STATUS_CLEANED: 'Cleaned, not took out',
+        STATUS_CLEANED: 'Cleaned, not taken out',
         STATUS_TAKING_OUT: 'Taking out',
         STATUS_COMPLETE: 'Complete',
     }
 
 
-class Garbage(models):
+class Garbage(models.Model):
     SIZE_SMALL = 0
     SIZE_MEDIUM = 1
     SIZE_LARGE = 2
@@ -31,16 +31,26 @@ class Garbage(models):
 
     lat = models.DecimalField('Latitude', max_digits=10, decimal_places=8)
     lng = models.DecimalField('Longitude', max_digits=11, decimal_places=8)
-    size = models.SmallIntegerField('Size', choices=SIZES)
+    size = models.SmallIntegerField('Size', choices=SIZES.items())
     solo_point = models.BooleanField('Point for one person', default=True)
     status = models.SmallIntegerField('Status', choices=GarbageStatus.STATUSES.items())
-    founder = models.ForeignKey(User, 'Found by')
-    cleaner = models.ForeignKey(User, 'Cleaned by', null=True, blank=True)
-    took_out_by = models.ForeignKey(User, 'Took out by', null=True, blank=True)
+    founder = models.ForeignKey(User, null=True, blank=True, related_name='founders')
+    cleaner = models.ForeignKey(User, null=True, blank=True, related_name='cleaners')
+    took_out_by = models.ForeignKey(User, null=True, blank=True, related_name='took_out_by')
+
+    def save_model(self, request, obj, form, change):
+        if getattr(obj, 'founder', None) is None:
+            obj.founder = request.user
+        super().save_model(request, obj, form, change)
 
 
-class GarbageImage(models):
-    garbage = models.ForeignKey(Garbage, 'Garbage', on_delete=models.CASCADE)
-    photo = models.CharField('Link on photo')
+class GarbageImage(models.Model):
+    garbage = models.ForeignKey(Garbage, related_name='photos', null=True)
+    photo = models.CharField('Link on photo', max_length=300)
     garbage_status = models.SmallIntegerField('Status', choices=GarbageStatus.STATUSES.items())
-    added_by = models.ForeignKey(User, 'Photo adder')
+    added_by = models.ForeignKey(User, null=True, blank=True)
+
+    def save_model(self, request, obj, form, change):
+        if getattr(obj, 'added_by', None) is None:
+            obj.added_by = request.user
+        super().save_model(request, obj, form, change)

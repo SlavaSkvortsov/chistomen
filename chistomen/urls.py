@@ -15,8 +15,11 @@ Including another URLconf
 """
 from django.conf.urls import url, include
 from django.contrib import admin
+from login.views import TokenAuthView
 
-URI_FOR_AUTH = 'https://oauth.vk.com/authorize?client_id=6073463&redirect_uri=http://127.0.0.1:8010/api/login/social/token/?response_type=code&state=OKURWAJAPERDOLE'
+EXAMPLE_URI_FOR_AUTH = 'https://oauth.vk.com/authorize?client_id=6073463&redirect_uri=http://localhost:8010/login/social/token/vk-oauth2/'
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
+    url(r'^login/social/token/(?:(?P<provider>[a-zA-Z0-9_-]+)/?)?$', TokenAuthView.as_view(), name='login_social_token'),
+    url(r'^', include('garbage.urls'))
 ]

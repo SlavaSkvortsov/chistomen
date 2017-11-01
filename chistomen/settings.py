@@ -42,6 +42,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'social_django',
+    'rest_social_auth',
+    'garbage',
+    'login',
 ]
 
 MIDDLEWARE = [
@@ -77,7 +80,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'chistomen.wsgi.application'
 
 AUTHENTICATION_BACKENDS = (
-    'rest_framework.authentication.TokenAuthentication',
+    'social_core.backends.vk.VKOAuth2',
     'django.contrib.auth.backends.ModelBackend',
 )
 
@@ -87,17 +90,19 @@ AUTHENTICATION_BACKENDS = (
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'chistomen',
+        'USER': 'root',
+        'PASSWORD': '12345',
     }
 }
-
+'''
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
     ),
 }
-
+'''
 # Password validation
 # https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators
 
