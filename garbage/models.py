@@ -1,4 +1,5 @@
-from django.db import models
+#from django.db import models
+from django.contrib.gis.db import models
 from django.contrib.auth.models import User
 
 
@@ -29,9 +30,8 @@ class Garbage(models.Model):
         SIZE_LARGE: 'Large',
     }
 
-    lat = models.DecimalField('Latitude', max_digits=10, decimal_places=8)
-    lng = models.DecimalField('Longitude', max_digits=11, decimal_places=8)
-    size = models.SmallIntegerField('Size', choices=SIZES.items())
+    location = models.PointField()
+    size = models.SmallIntegerField('Size', choices=SIZES.items(), default=SIZE_SMALL)
     solo_point = models.BooleanField('Point for one person', default=True)
     status = models.SmallIntegerField('Status', choices=GarbageStatus.STATUSES.items())
     founder = models.ForeignKey(User, null=True, blank=True, related_name='founders')
