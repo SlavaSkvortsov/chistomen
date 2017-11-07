@@ -17,11 +17,12 @@ class GarbageUpdateSerializer(serializers.ModelSerializer):
         if 'lat' in validated_data and 'lng' in validated_data:
             garbage.location = Point((validated_data.pop('lng'), validated_data.pop('lat')))
         if 'photo' in validated_data:
-            for photo in GarbageImage.objects.filter(garbage=garbage, garbage_status=GarbageStatus.STATUS_DIRTY):
+            for photo in GarbageImage.objects.filter(garbage=garbage, garbage_status=garbage.status):
                 photo.delete()
 
             for photo in validated_data.pop('photo'):
-                image = GarbageImage(photo=photo, garbage_status=GarbageStatus.STATUS_DIRTY, garbage=garbage)
+                image = GarbageImage(photo=photo, garbage=garbage,
+                                     garbage_status=validated_data.get('status', None) if validated_data.get('status', None) else garbage.status)
                 image.save()
 
         for key, value in validated_data.items():
@@ -43,6 +44,7 @@ class GarbageCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         photos = validated_data.pop('photo')
         location = Point((validated_data.pop('lng'), validated_data.pop('lat')))
+        print(location)
         garbage = Garbage(status=GarbageStatus.STATUS_DIRTY, location=location, **validated_data)
         garbage.save()
         for photo in photos:
@@ -55,12 +57,14 @@ class GarbageSearchSerializer(GarbageCreateSerializer):
     radius = serializers.DecimalField(max_digits=8, decimal_places=3, required=True)
 
     class Meta:
-        fields = ('id', 'lat', 'lng', 'size', 'solo_point', 'photo', 'radius',)
+        fields = ('id', 'lat', 'lng', 'size', 'solo_point', 'photo', 'radius', 'status')
         model = Garbage
 
 
 class GarbageShowSerializer(serializers.ModelSerializer):
     photo = serializers.SerializerMethodField()
+    lat = serializers.SerializerMethodField()
+    lng = serializers.SerializerMethodField()
 
     def get_photo(self, garbage):
         photos = list()
@@ -68,9 +72,16 @@ class GarbageShowSerializer(serializers.ModelSerializer):
             photos.append(dict(id=photo.id, photo=photo.photo))
         return photos
 
+    def get_lng(self, garbage):
+        return garbage.location.x
+
+    def get_lat(self, garbage):
+        return garbage.location.y
+
     class Meta:
         model = Garbage
-        fields = '__all__'
+        fields = ('lat', 'lng', 'size', 'solo_point', 'photo', 'status', 'founder', 'cleaner', 'took_out_by')
+
 
 class PhotoSerializer(serializers.ModelSerializer):
     garbage_status = serializers.ChoiceField(choices=GarbageStatus.STATUSES.items(), required=False)

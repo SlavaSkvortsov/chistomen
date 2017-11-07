@@ -81,16 +81,16 @@ WSGI_APPLICATION = 'chistomen.wsgi.application'
 
 AUTHENTICATION_BACKENDS = (
     'social_core.backends.vk.VKOAuth2',
+    'social_core.backends.google.GoogleOAuth2',
     'django.contrib.auth.backends.ModelBackend',
 )
 
 
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.mysql',
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'chistomen',
         'USER': 'root',
         'PASSWORD': '12345',
@@ -140,6 +140,10 @@ VK_API_SECRET = 'UOqBxW7HtrfQv0wRqW0P'
 
 SOCIAL_AUTH_VK_OAUTH2_KEY = '6073463'
 SOCIAL_AUTH_VK_OAUTH2_SECRET = 'UOqBxW7HtrfQv0wRqW0P'
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '888906823457-u6j91d99a1hucothqst0rj77b4529q6q.apps.googleusercontent.com'
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = 'TyTxXfNdJS3fehp8znFGKwji'
+
 
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
 
