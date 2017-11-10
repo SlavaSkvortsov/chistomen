@@ -1,5 +1,6 @@
 from django.contrib.gis.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 
 class GarbageException(Exception):
@@ -8,14 +9,17 @@ class GarbageException(Exception):
     def __init__(self, data):
         self.data = data
 
+
 class GarbageStatus(object):
-    STATUS_DIRTY = 0
-    STATUS_IN_CLEANING = 1
-    STATUS_CLEANED = 2
-    STATUS_TAKING_OUT = 3
-    STATUS_COMPLETE = 4
+    STATUS_PREPARING = 0
+    STATUS_DIRTY = 1
+    STATUS_IN_CLEANING = 2
+    STATUS_CLEANED = 3
+    STATUS_TAKING_OUT = 4
+    STATUS_COMPLETE = 5
 
     STATUSES = {
+        STATUS_PREPARING: 'Preparing',
         STATUS_DIRTY: 'Not cleaned',
         STATUS_IN_CLEANING: 'In cleaning',
         STATUS_CLEANED: 'Cleaned, not taken out',
@@ -24,12 +28,16 @@ class GarbageStatus(object):
     }
 
     AVAILABLE_STATUS_CHANGE = {
+        STATUS_PREPARING: [STATUS_PREPARING, STATUS_DIRTY],
         STATUS_DIRTY: [STATUS_DIRTY, STATUS_IN_CLEANING],
         STATUS_IN_CLEANING: [STATUS_IN_CLEANING, STATUS_DIRTY, STATUS_CLEANED],
-        STATUS_CLEANED: [STATUS_CLEANED, STATUS_IN_CLEANING, STATUS_TAKING_OUT],
+        STATUS_CLEANED: [STATUS_CLEANED, STATUS_TAKING_OUT],
         STATUS_TAKING_OUT: [STATUS_TAKING_OUT, STATUS_CLEANED, STATUS_COMPLETE],
         STATUS_COMPLETE: [STATUS_COMPLETE, STATUS_TAKING_OUT],
     }
+
+    INTERMEDIATE_STATUSES = [STATUS_PREPARING, STATUS_IN_CLEANING, STATUS_TAKING_OUT]
+    FINAL_STATUSES = [STATUS_DIRTY, STATUS_CLEANED, STATUS_COMPLETE]
 
 
 class Garbage(models.Model):
@@ -46,38 +54,35 @@ class Garbage(models.Model):
     location = models.PointField(geography=True)
     size = models.SmallIntegerField('Size', choices=SIZES.items(), default=SIZE_SMALL)
     solo_point = models.BooleanField('Point for one person', default=True)
-    status = models.SmallIntegerField('Status', choices=GarbageStatus.STATUSES.items())
-    founder = models.ForeignKey(User, null=True, blank=True, related_name='founders')
-    cleaner = models.ForeignKey(User, null=True, blank=True, related_name='cleaners')
-    took_out_by = models.ForeignKey(User, null=True, blank=True, related_name='took_out_by')
+    status = models.SmallIntegerField('Status', choices=GarbageStatus.STATUSES.items())  # Denormalization
 
-    def save_model(self, request, obj, form, change):
-        if getattr(obj, 'founder', None) is None:
-            obj.founder = request.user
-        super().save_model(request, obj, form, change)
+    def change_status(self, new_status, user):
+        if new_status not in GarbageStatus.AVAILABLE_STATUS_CHANGE[self.status]:
+            raise GarbageException(data=dict(status=['Incorrect status for changing. You cant change status from #{} to #{}'.format(self.status, new_status)]))
+        if new_status in GarbageStatus.INTERMEDIATE_STATUSES and not user.is_stuff() and self.owner != user:
+            raise GarbageException(data=['Access denied. This garbage is using by another user'])
 
-    def change_status(self, status, user):
-        if status not in GarbageStatus.AVAILABLE_STATUS_CHANGE[self.status]:
-            raise GarbageException(data=dict(status=['Incorrect status for changing. You cant change status from #{} to #{}'.format(self.status, status)]))
-        update_fields = ['status']
-        if status != self.status:
+        if new_status != self.status:
+            self.status = new_status
+            self.save(update_fields=['status'])
+            status_changing = StatusChanging(garbage=self, changer=user, status=new_status)
+            status_changing.save()
 
-            if self.status == GarbageStatus.STATUS_IN_CLEANING and status == GarbageStatus.STATUS_CLEANED:
-                self.cleaner = user
-                update_fields.append('cleaner')
-            elif self.status == GarbageStatus.STATUS_TAKING_OUT and status == GarbageStatus.STATUS_COMPLETE:
-                self.took_out_by = user
-                update_fields.append('took_out_by')
-        self.status = status
-        self.save(update_fields=update_fields)
+    @property
+    def owner(self):
+        return self.status_obj.changer
 
-    def get_owner_by_status(self):
-        if self.status == GarbageStatus.STATUS_DIRTY:
-            return self.founder
-        elif self.status == GarbageStatus.STATUS_CLEANED:
-            return self.cleaner
-        elif self.status == GarbageStatus.STATUS_COMPLETE:
-            return self.took_out_by
+    @property
+    def status_obj(self):
+        return StatusChanging.objects.filter(garbage=self).order_by('-date')[0]
+
+
+class StatusChanging(models.Model):
+    garbage = models.ForeignKey(Garbage, related_name='statuses', null=True)
+    changer = models.ForeignKey(User)
+    status = models.SmallIntegerField(choices=GarbageStatus.STATUSES.items())
+    date = models.DateTimeField(auto_now_add=True)
+
 
 class GarbageImage(models.Model):
     garbage = models.ForeignKey(Garbage, related_name='photos', null=True)
@@ -85,7 +90,9 @@ class GarbageImage(models.Model):
     garbage_status = models.SmallIntegerField('Status', choices=GarbageStatus.STATUSES.items())
     added_by = models.ForeignKey(User, null=True, blank=True)
 
-    def save_model(self, request, obj, form, change):
-        if getattr(obj, 'added_by', None) is None:
-            obj.added_by = request.user
-        super().save_model(request, obj, form, change)
+
+class GarbageDescription(models.Model):
+    garbage = models.ForeignKey(Garbage, related_name='descriptions')
+    description = models.CharField('Description', max_length=1000)
+    garbage_status = models.SmallIntegerField('Status', choices=GarbageStatus.STATUSES.items())
+    added_by = models.ForeignKey(User, null=True, blank=True)

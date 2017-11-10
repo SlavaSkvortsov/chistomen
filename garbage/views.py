@@ -1,18 +1,21 @@
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializers import GarbageCreateSerializer, GarbageUpdateSerializer, GarbageSearchSerializer, PhotoSerializer, GarbageShowSerializer
+from .serializers import GarbageSerializer, GarbageSearchSerializer, PhotoSerializer, DescriptionSerializer, \
+    GarbageShowSerializer, ChangeStatusSerializer
 
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.decorators import authentication_classes
 import logging
-from .models import Garbage, GarbageImage, GarbageException
+from .models import Garbage, GarbageImage, GarbageException, GarbageDescription
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import Distance
-from .decorators import check_permission
+from .decorators import check_permission, authorization
 logger = logging.getLogger(__name__)
 
+
 class GarbageView(APIView):
+    authentication_classes = [TokenAuthentication]
+
     def get(self, request):
         """
         Getting list of garbages by filter params
@@ -40,43 +43,44 @@ class GarbageView(APIView):
         else:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-    @authentication_classes([TokenAuthentication])
+    @authorization
     def post(self, request):
         """
         Adding a new garbage to db
         """
-        serializer = GarbageCreateSerializer(data=request.POST)
+        serializer = GarbageSerializer(data=request.POST)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        garbage = serializer.save()
+        garbage = serializer.save(user=request.user)
         return Response(dict(id=garbage.pk), status=status.HTTP_201_CREATED)
 
 
 class GarbageDetail(APIView):
+    authentication_classes = [TokenAuthentication]
+
     def get(self, request, pk):
         """
         Getting existing garbage
         This method uses without identification - everyone can call it
         """
-        serializer = GarbageShowSerializer(request.garbage)
+        try:
+            garbage = Garbage.objects.get(pk=pk)
+        except Garbage.DoesNotExist:
+            return Response(dict(message='Cant find garbage with id={}'.format(pk)), status=status.HTTP_404_NOT_FOUND)
+
+        serializer = GarbageShowSerializer(garbage)
         return Response(serializer.data)
 
+    @authorization
     @check_permission
-    @authentication_classes([TokenAuthentication])
     def patch(self, request, pk):
         """
         Editing existing garbage
         """
-        serializer = GarbageUpdateSerializer(request.garbage, data=request.POST)
+        serializer = GarbageSerializer(request.garbage, data=request.POST)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        if 'status' in serializer.validated_data:
-            try:
-                request.garbage.change_status(serializer.validated_data['status'], request.user)
-            except GarbageException:
-                return Response(data=GarbageException.data, status=status.HTTP_400_BAD_REQUEST)
 
         serializer.save()
 
@@ -86,6 +90,7 @@ class GarbageDetail(APIView):
 class GarbagePhoto(APIView):
     authentication_classes = [TokenAuthentication]
 
+    @authorization
     @check_permission
     def post(self, request, pk):
         """
@@ -102,13 +107,14 @@ class GarbagePhoto(APIView):
 class DelPhoto(APIView):
     authentication_classes = [TokenAuthentication]
 
+    @authorization
     @check_permission
     def delete(self, request, pk_garbage, pk_photo):
         """
         Deleting photo
         """
         try:
-            photo = GarbageImage.objects.get(pk=pk_garbage, garbage=request.garbage)
+            photo = GarbageImage.objects.get(pk=pk_photo, garbage=request.garbage)
         except GarbageImage.DoesNotExist:
             return Response(dict(message='Cant find photo with id={}'.format(pk_photo)), status=status.HTTP_404_NOT_FOUND)
 
@@ -116,3 +122,57 @@ class DelPhoto(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
+class GarbageDescriptionView(APIView):
+    authentication_classes = [TokenAuthentication]
+
+    @authorization
+    @check_permission
+    def post(self, request, pk):
+        """
+        Adding a new description to garbage
+        """
+        serializer = DescriptionSerializer(data=request.POST)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        description = serializer.save(garbage=request.garbage)
+        return Response(dict(id=description.id), status=status.HTTP_201_CREATED)
+
+
+class DelDescription(APIView):
+    authentication_classes = [TokenAuthentication]
+
+    @authorization
+    @check_permission
+    def delete(self, request, pk_garbage, pk_description):
+        """
+        Deleting photo
+        """
+        try:
+            description = GarbageDescription.objects.get(pk=pk_description, garbage=request.garbage)
+        except GarbageDescription.DoesNotExist:
+            return Response(dict(message='Cant find photo with id={}'.format(pk_description)), status=status.HTTP_404_NOT_FOUND)
+
+        description.delete()
+        return Response(status=status.HTTP_200_OK)
+
+
+class ChangeStatus(APIView):
+    authentication_classes = [TokenAuthentication]
+
+    @authorization
+    @check_permission
+    def post(self, request, pk):
+        """
+        Changing status to new one
+        """
+        serializer = ChangeStatusSerializer(data=request.POST)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            request.garbage.change_status(serializer.validated_data['status'], request.user)
+        except GarbageException:
+            return Response(data=GarbageException.data, status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_200_OK)
