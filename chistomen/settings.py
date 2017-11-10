@@ -20,9 +20,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '_$tkkuak6f0!+emwitwbqp9h#4m7g(hnggq(rxd**e^oc0p0py'
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -88,14 +85,6 @@ AUTHENTICATION_BACKENDS = (
 
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'chistomen',
-        'USER': 'root',
-        'PASSWORD': '12345',
-    }
-}
 '''
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -136,13 +125,10 @@ USE_L10N = True
 USE_TZ = True
 
 VK_APP_ID = '6073463'
-VK_API_SECRET = 'UOqBxW7HtrfQv0wRqW0P'
 
 SOCIAL_AUTH_VK_OAUTH2_KEY = '6073463'
-SOCIAL_AUTH_VK_OAUTH2_SECRET = 'UOqBxW7HtrfQv0wRqW0P'
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '888906823457-u6j91d99a1hucothqst0rj77b4529q6q.apps.googleusercontent.com'
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = 'TyTxXfNdJS3fehp8znFGKwji'
 
 
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
@@ -151,3 +137,8 @@ SOCIAL_AUTH_URL_NAMESPACE = 'social'
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
+
+try:
+    from .local_settings import *
+except ImportError:
+    pass

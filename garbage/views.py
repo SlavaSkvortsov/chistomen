@@ -21,6 +21,7 @@ class GarbageView(APIView):
         Getting list of garbages by filter params
         This method uses without identification - everyone can call it
         """
+        return Response('This method does not supported on MySQL DB! Pay 5$ plz and I`ll get subscription')
         serializer = GarbageSearchSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
