@@ -9,6 +9,7 @@ import logging
 from .models import Garbage, GarbageImage, GarbageException, GarbageDescription
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import Distance
+from django.db import connection
 from .decorators import check_permission, authorization
 logger = logging.getLogger(__name__)
 
@@ -21,15 +22,18 @@ class GarbageView(APIView):
         Getting list of garbages by filter params
         This method uses without identification - everyone can call it
         """
-        return Response('This method does not supported on MySQL DB! Pay 5$ plz and I`ll get subscription')
         serializer = GarbageSearchSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         flt = dict()
 
-        if 'lng' in serializer.data and 'lat' in serializer.data and 'radius' in serializer.data:
-            point = Point((float(serializer.data['lng']), float(serializer.data['lat'])))
-            flt.update(dict(location__distance_lte=(point, Distance(km=float(serializer.data['radius'])))))
+        if connection.vendor == 'mysql':
+            # Looking for points in radius does not working on MySQL
+            pass
+        else:
+            if 'lng' in serializer.data and 'lat' in serializer.data and 'radius' in serializer.data:
+                point = Point((float(serializer.data['lng']), float(serializer.data['lat'])))
+                flt.update(dict(location__distance_lte=(point, Distance(km=float(serializer.data['radius'])))))
         for var in ('size', 'status'):
             if var in serializer.data:
                 value = serializer.data[var]
@@ -162,7 +166,7 @@ class ChangeStatus(APIView):
     authentication_classes = [TokenAuthentication]
 
     @authorization
-    @check_permission
+    @check_permission(status_editing=True)
     def post(self, request, pk):
         """
         Changing status to new one

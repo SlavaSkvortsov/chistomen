@@ -59,7 +59,7 @@ class Garbage(models.Model):
     def change_status(self, new_status, user):
         if new_status not in GarbageStatus.AVAILABLE_STATUS_CHANGE[self.status]:
             raise GarbageException(data=dict(status=['Incorrect status for changing. You cant change status from #{} to #{}'.format(self.status, new_status)]))
-        if new_status in GarbageStatus.INTERMEDIATE_STATUSES and not user.is_stuff() and self.owner != user:
+        if new_status in GarbageStatus.INTERMEDIATE_STATUSES and not user.is_staff and self.owner != user:
             raise GarbageException(data=['Access denied. This garbage is using by another user'])
 
         if new_status != self.status:

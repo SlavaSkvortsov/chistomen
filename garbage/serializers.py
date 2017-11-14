@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from garbage.models import Garbage, GarbageImage, GarbageStatus, GarbageDescription, StatusChanging
 from django.contrib.gis.geos import Point
+from django.db import connection
 
 
 class GarbageSerializer(serializers.ModelSerializer):
@@ -82,18 +83,21 @@ class GarbageShowSerializer(serializers.ModelSerializer):
         return [dict(id=desc.id, description=desc.description, status=desc.garbage_status) for desc in garbage.descriptions.all()]
 
     def get_status_history(self, garbage):
-        statuses = StatusChanging.objects.raw(
-            ' select t.* '
-            '   from garbage_statuschanging t '
-            '       ,(select tt.id '
-            '               ,row_number() over(partition by tt.status order by date desc) as rownum '
-            '           from (select distinct t.status '
-            '                   from garbage_statuschanging t '
-            '                  where t.garbage_id = {}) a '
-            '                       ,garbage_statuschanging tt '
-            '          where a.status = tt.status) a '
-            '   where t.id = a.id '
-            '     and a.rownum = 1 '.format(garbage.id))
+        if connection.vendor == 'mysql':
+            return ['Give me back my oracle plz... P.S. Does not support on MySQL. ']
+        else:
+            statuses = StatusChanging.objects.raw(
+                ' select t.* '
+                '   from garbage_statuschanging t '
+                '       ,(select tt.id '
+                '               ,row_number() over(partition by tt.status order by date desc) as rownum '
+                '           from (select distinct t.status '
+                '                   from garbage_statuschanging t '
+                '                  where t.garbage_id = {}) a '
+                '                       ,garbage_statuschanging tt '
+                '          where a.status = tt.status) a '
+                '   where t.id = a.id '
+                '     and a.rownum = 1 '.format(garbage.id))
         return [dict(status=status.status, user=status.changer.id, date=status.date) for status in statuses]
 
     class Meta:
