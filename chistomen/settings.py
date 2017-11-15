@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_social_auth',
     'garbage',
     'login',
+    'django_db_logger',
 ]
 
 MIDDLEWARE = [
@@ -52,6 +53,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'garbage.middleware.GarbageLoggingMiddleware',
+    'login.middleware.LoginLoggingMiddleware',
 ]
 
 ROOT_URLCONF = 'chistomen.urls'
@@ -110,6 +113,40 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'formatters': {
+        'verbose': {
+            'format': '[%(asctime)s] [%(module)s] %(levelname)s: %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+    },
+
+    'handlers': {
+        'db': {
+            'level': 'DEBUG',
+            'class': 'django_db_logger.db_log_handler.DatabaseLogHandler',
+        },
+    },
+
+    'loggers': {
+        'garbage': {
+            'handlers': ['db'],
+            'level': 'DEBUG',
+            'propagate': True,
+            },
+        'login': {
+            'handlers': ['db'],
+            'level': 'DEBUG',
+            'propagate': True,
+            },
+    }
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
