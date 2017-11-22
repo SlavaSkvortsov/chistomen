@@ -30,5 +30,5 @@ GOOGLE_PLUS = 'https://accounts.google.com/o/oauth2/v2/auth?scope=https://www.go
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^login/social/token/(?:(?P<provider>[a-zA-Z0-9_-]+)/?)?$', TokenAuthView.as_view(), name='login_social_token'),
-    url(r'^', include('garbage.urls'))
+    url(r'^garbage/', include('garbage.urls'))
 ]
