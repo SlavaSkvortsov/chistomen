@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'garbage',
     'login',
     'django_db_logger',
+    'achievements',
+    'core',
 ]
 
 MIDDLEWARE = [
@@ -171,6 +173,9 @@ SOCIAL_AUTH_URL_NAMESPACE = 'social'
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
+
+ACHIEVEMENTS_ADD_IN_RESPONSE = True
+ACHIEVEMENTS_USER_MODEL = 'core.models.CustomUser'
 
 try:
     from .local_settings import *
