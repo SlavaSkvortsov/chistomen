@@ -1,8 +1,10 @@
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializers import GarbageSerializer, GarbageSearchSerializer, PhotoSerializer, DescriptionSerializer, \
+from .serializers import (
+    GarbageSerializer, GarbageSearchSerializer, PhotoSerializer, DescriptionSerializer,
     GarbageShowSerializer, ChangeStatusSerializer
+)
 
 from rest_framework.authentication import TokenAuthentication
 import logging
@@ -22,7 +24,7 @@ class GarbageView(APIView):
         Getting list of garbages by filter params
         This method uses without identification - everyone can call it
         """
-        serializer = GarbageSearchSerializer(data=request.GET)
+        serializer = GarbageSearchSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         flt = dict()
@@ -33,15 +35,15 @@ class GarbageView(APIView):
         else:
             if 'lng' in serializer.data and 'lat' in serializer.data and 'radius' in serializer.data:
                 point = Point((float(serializer.data['lng']), float(serializer.data['lat'])))
-                flt.update(dict(location__distance_lte=(point, Distance(km=float(serializer.data['radius'])))))
+                flt['location__distance_lte'] = (point, Distance(km=float(serializer.data['radius'])))
         for var in ('size', 'status'):
             if var in serializer.data:
-                value = serializer.data[var]
-                if not isinstance(value, list):
-                    value = [value]
-                flt.update({'{}__in'.format(var): value})
+                value = serializer.data[var].split(',')
+                flt['{}__in'.format(var)] = value
         garbages = Garbage.objects.filter(**flt)
 
+
+        # TODO Захуярь вывод через сериалайзер, идиот
         result = [dict(id=garbage.id, lng=garbage.location.x, lat=garbage.location.y, size=garbage.size, status=garbage.status) for garbage in garbages]
         if result:
             return Response(result)
@@ -53,7 +55,7 @@ class GarbageView(APIView):
         """
         Adding a new garbage to db
         """
-        serializer = GarbageSerializer(data=request.POST)
+        serializer = GarbageSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         garbage = serializer.save(user=request.user)
@@ -82,7 +84,7 @@ class GarbageDetail(APIView):
         """
         Editing existing garbage
         """
-        serializer = GarbageSerializer(request.garbage, data=request.POST)
+        serializer = GarbageSerializer(request.garbage, data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -101,7 +103,7 @@ class GarbagePhoto(APIView):
         """
         Adding a new photo to garbage
         """
-        serializer = PhotoSerializer(data=request.POST)
+        serializer = PhotoSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -136,7 +138,7 @@ class GarbageDescriptionView(APIView):
         """
         Adding a new description to garbage
         """
-        serializer = DescriptionSerializer(data=request.POST)
+        serializer = DescriptionSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -171,7 +173,7 @@ class ChangeStatus(APIView):
         """
         Changing status to new one
         """
-        serializer = ChangeStatusSerializer(data=request.POST)
+        serializer = ChangeStatusSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

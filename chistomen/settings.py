@@ -80,6 +80,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'chistomen.wsgi.application'
 
 AUTHENTICATION_BACKENDS = (
+    'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
     'social_core.backends.vk.VKOAuth2',
     'social_core.backends.google.GoogleOAuth2',
     'django.contrib.auth.backends.ModelBackend',
@@ -176,3 +177,16 @@ try:
     from .local_settings import *
 except ImportError:
     pass
+
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'offline',
+        }
+    }
+}

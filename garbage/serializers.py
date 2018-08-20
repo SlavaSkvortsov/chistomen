@@ -5,17 +5,17 @@ from django.db import connection
 
 
 class GarbageSerializer(serializers.ModelSerializer):
-    photo = serializers.ListField(child=serializers.CharField(), required=False)
+    photos = serializers.ListField(child=serializers.CharField(), required=False)
     solo_point = serializers.NullBooleanField(required=False)
     lat = serializers.DecimalField(max_digits=10, decimal_places=8, required=False)
     lng = serializers.DecimalField(max_digits=11, decimal_places=8, required=False)
 
     class Meta:
         model = Garbage
-        fields = ('id', 'lat', 'lng', 'size', 'solo_point', 'photo',)
+        fields = ('id', 'lat', 'lng', 'size', 'solo_point', 'photos',)
 
     def create(self, validated_data):
-        photos = validated_data.pop('photo')
+        photos = validated_data.pop('photos')
         location = Point((validated_data.pop('lng'), validated_data.pop('lat')))
         user = validated_data.pop('user')
         garbage = Garbage(status=GarbageStatus.STATUS_PREPARING, location=location, **validated_data)
@@ -48,8 +48,9 @@ class GarbageSerializer(serializers.ModelSerializer):
 
 
 class GarbageSearchSerializer(GarbageSerializer):
-    radius = serializers.DecimalField(max_digits=8, decimal_places=3, required=True)
-    status = serializers.ChoiceField(choices=GarbageStatus.STATUSES)
+    radius = serializers.DecimalField(max_digits=8, decimal_places=3, required=False)
+    status = serializers.CharField(required=False)
+    size = serializers.CharField(required=False)
 
     class Meta:
         fields = ('id', 'lat', 'lng', 'size', 'solo_point', 'photo', 'radius', 'status')
