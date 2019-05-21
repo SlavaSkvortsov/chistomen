@@ -16,9 +16,9 @@ class GarbageSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         photos = validated_data.pop('photos')
-        location = Point((validated_data.pop('lng'), validated_data.pop('lat')))
+        lng, lat = (validated_data.pop('lng'), validated_data.pop('lat'))
         user = validated_data.pop('user')
-        garbage = Garbage(status=GarbageStatus.STATUS_PREPARING, location=location, **validated_data)
+        garbage = Garbage(status=GarbageStatus.STATUS_PREPARING, lat=lat, lng=lng, **validated_data)
         garbage.save()
         for photo in photos:
             image = GarbageImage(photo=photo, garbage_status=GarbageStatus.STATUS_PREPARING, garbage=garbage)
@@ -38,7 +38,8 @@ class GarbageSerializer(serializers.ModelSerializer):
 
             for photo in validated_data.pop('photo'):
                 image = GarbageImage(photo=photo, garbage=garbage,
-                                     garbage_status=validated_data.get('status', None) if validated_data.get('status', None) else garbage.status)
+                                     garbage_status=validated_data.get('status', None) if validated_data.get('status',
+                                                                                                             None) else garbage.status)
                 image.save()
 
         for key, value in validated_data.items():
@@ -53,15 +54,13 @@ class GarbageSearchSerializer(GarbageSerializer):
     size = serializers.CharField(required=False)
 
     class Meta:
-        fields = ('id', 'lat', 'lng', 'size', 'solo_point', 'photo', 'radius', 'status')
+        fields = ('id', 'lat', 'lng', 'size', 'solo_point', 'radius', 'status')
         model = Garbage
 
 
 class GarbageShowSerializer(serializers.ModelSerializer):
     photo = serializers.SerializerMethodField()
     description = serializers.SerializerMethodField()
-    lat = serializers.SerializerMethodField()
-    lng = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     status_history = serializers.SerializerMethodField()
 
@@ -71,17 +70,12 @@ class GarbageShowSerializer(serializers.ModelSerializer):
             photos.append(dict(id=photo.id, photo=photo.photo, status=photo.garbage_status))
         return photos
 
-    def get_lng(self, garbage):
-        return garbage.location.x
-
-    def get_lat(self, garbage):
-        return garbage.location.y
-
     def get_status(self, garbage):
         return garbage.status
 
     def get_description(self, garbage):
-        return [dict(id=desc.id, description=desc.description, status=desc.garbage_status) for desc in garbage.descriptions.all()]
+        return [dict(id=desc.id, description=desc.description, status=desc.garbage_status) for desc in
+                garbage.descriptions.all()]
 
     def get_status_history(self, garbage):
         if connection.vendor == 'mysql':
@@ -108,7 +102,8 @@ class GarbageShowSerializer(serializers.ModelSerializer):
 
 class PhotoSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
-        photo = GarbageImage(photo=validated_data['photo'], garbage_status=validated_data['garbage'].status, garbage=validated_data['garbage'])
+        photo = GarbageImage(photo=validated_data['photo'], garbage_status=validated_data['garbage'].status,
+                             garbage=validated_data['garbage'])
         photo.save()
         return photo
 
@@ -121,11 +116,13 @@ class DescriptionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Deleting the old one description
         try:
-            description = GarbageDescription.objects.get(garbage=validated_data['garbage'], garbage_status=validated_data['garbage'].status)
+            description = GarbageDescription.objects.get(garbage=validated_data['garbage'],
+                                                         garbage_status=validated_data['garbage'].status)
             description.delete()
         except GarbageDescription.DoesNotExist:
             pass
-        description = GarbageDescription(garbage=validated_data['garbage'], description=validated_data['description'], garbage_status=validated_data['garbage'].status)
+        description = GarbageDescription(garbage=validated_data['garbage'], description=validated_data['description'],
+                                         garbage_status=validated_data['garbage'].status)
         description.save()
         return description
 

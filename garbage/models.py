@@ -51,7 +51,8 @@ class Garbage(models.Model):
         SIZE_LARGE: 'Large',
     }
 
-    location = models.PointField(geography=True)
+    lat = models.FloatField()
+    lng = models.FloatField()
     size = models.SmallIntegerField('Size', choices=SIZES.items(), default=SIZE_SMALL)
     solo_point = models.BooleanField('Point for one person', default=True)
     status = models.SmallIntegerField('Status', choices=GarbageStatus.STATUSES.items())  # Denormalization
@@ -78,21 +79,24 @@ class Garbage(models.Model):
 
 
 class StatusChanging(models.Model):
-    garbage = models.ForeignKey(Garbage, related_name='statuses', null=True)
-    changer = models.ForeignKey(User)
+    garbage = models.ForeignKey(Garbage, related_name='statuses', null=True, on_delete=models.CASCADE)
+    changer = models.ForeignKey(User, on_delete=models.CASCADE)
     status = models.SmallIntegerField(choices=GarbageStatus.STATUSES.items())
     date = models.DateTimeField(auto_now_add=True)
 
 
 class GarbageImage(models.Model):
-    garbage = models.ForeignKey(Garbage, related_name='photos', null=True)
+    garbage = models.ForeignKey(Garbage, related_name='photos', null=True, on_delete=models.CASCADE)
     photo = models.CharField('Link on photo', max_length=300)
     garbage_status = models.SmallIntegerField('Status', choices=GarbageStatus.STATUSES.items())
-    added_by = models.ForeignKey(User, null=True, blank=True)
+    added_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE)
 
 
 class GarbageDescription(models.Model):
-    garbage = models.ForeignKey(Garbage, related_name='descriptions')
+    garbage = models.ForeignKey(Garbage, related_name='descriptions', on_delete=models.CASCADE)
     description = models.CharField('Description', max_length=1000)
     garbage_status = models.SmallIntegerField('Status', choices=GarbageStatus.STATUSES.items())
-    added_by = models.ForeignKey(User, null=True, blank=True)
+    added_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE)
+
+
+from .signals import *

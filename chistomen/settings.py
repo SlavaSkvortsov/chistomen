@@ -190,3 +190,7 @@ SOCIALACCOUNT_PROVIDERS = {
         }
     }
 }
+
+from mongoengine import *
+
+connect('chistomen')

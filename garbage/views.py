@@ -1,18 +1,19 @@
+import logging
+
 from rest_framework import status
-from rest_framework.views import APIView
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from garbage.mongo import MongoGarbagePoint
+from .decorators import check_permission, authorization
+from .models import Garbage, GarbageImage, GarbageException, GarbageDescription
 from .serializers import (
-    GarbageSerializer, GarbageSearchSerializer, PhotoSerializer, DescriptionSerializer,
+    GarbageSerializer, PhotoSerializer, DescriptionSerializer,
     GarbageShowSerializer, ChangeStatusSerializer
 )
 
-from rest_framework.authentication import TokenAuthentication
-import logging
-from .models import Garbage, GarbageImage, GarbageException, GarbageDescription
-from django.contrib.gis.geos import Point
-from django.contrib.gis.measure import Distance
-from django.db import connection
-from .decorators import check_permission, authorization
 logger = logging.getLogger(__name__)
 
 
@@ -24,31 +25,52 @@ class GarbageView(APIView):
         Getting list of garbages by filter params
         This method uses without identification - everyone can call it
         """
-        serializer = GarbageSearchSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        flt = dict()
 
-        if connection.vendor == 'mysql':
-            # Looking for points in radius does not working on MySQL
-            pass
-        else:
-            if 'lng' in serializer.data and 'lat' in serializer.data and 'radius' in serializer.data:
-                point = Point((float(serializer.data['lng']), float(serializer.data['lat'])))
-                flt['location__distance_lte'] = (point, Distance(km=float(serializer.data['radius'])))
+        lng = request.query_params.get('lng', None)
+        lat = request.query_params.get('lat', None)
+        radius = request.query_params.get('radius', None)
+
+        try:
+            lng = float(lng)
+        except ValueError:
+            raise ValidationError({
+                'lng': "param is invalid"
+            })
+
+        try:
+            lat = float(lat)
+        except ValueError:
+            raise ValidationError({
+                'lat': "param is invalid"
+            })
+
+        try:
+            radius = float(radius)
+        except ValueError:
+            raise ValidationError({
+                'radius': "param is invalid"
+            })
+
+        flt = dict()
+        raw_points = None
+        if lng and lat and radius:
+            raw_points = MongoGarbagePoint.objects.filter(
+                point__geo_within_sphere=[(lng, lat), radius / (6371 * 1000)]
+            )
+
         for var in ('size', 'status'):
-            if var in serializer.data:
-                value = serializer.data[var].split(',')
+            if var in request.query_params:
+                value = request.query_params.get(var)
+                value = value.split(',')
                 flt['{}__in'.format(var)] = value
+
+        if raw_points is not None:
+            flt['pk__in'] = map(lambda x: x.garbage_ptr, raw_points)
+
         garbages = Garbage.objects.filter(**flt)
 
-
-        # TODO Захуярь вывод через сериалайзер, идиот
-        result = [dict(id=garbage.id, lng=garbage.location.x, lat=garbage.location.y, size=garbage.size, status=garbage.status) for garbage in garbages]
-        if result:
-            return Response(result)
-        else:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        result = GarbageShowSerializer(instance=garbages, many=True).data
+        return Response(data=result)
 
     @authorization
     def post(self, request):
@@ -123,7 +145,8 @@ class DelPhoto(APIView):
         try:
             photo = GarbageImage.objects.get(pk=pk_photo, garbage=request.garbage)
         except GarbageImage.DoesNotExist:
-            return Response(dict(message='Cant find photo with id={}'.format(pk_photo)), status=status.HTTP_404_NOT_FOUND)
+            return Response(dict(message='Cant find photo with id={}'.format(pk_photo)),
+                            status=status.HTTP_404_NOT_FOUND)
 
         photo.delete()
         return Response(status=status.HTTP_200_OK)
@@ -158,7 +181,8 @@ class DelDescription(APIView):
         try:
             description = GarbageDescription.objects.get(pk=pk_description, garbage=request.garbage)
         except GarbageDescription.DoesNotExist:
-            return Response(dict(message='Cant find photo with id={}'.format(pk_description)), status=status.HTTP_404_NOT_FOUND)
+            return Response(dict(message='Cant find photo with id={}'.format(pk_description)),
+                            status=status.HTTP_404_NOT_FOUND)
 
         description.delete()
         return Response(status=status.HTTP_200_OK)
