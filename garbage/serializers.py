@@ -96,7 +96,7 @@ class GarbageShowSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Garbage
-        fields = ('lat', 'lng', 'size', 'solo_point', 'photo', 'status', 'description', 'status_history')
+        fields = ('id', 'lat', 'lng', 'size', 'solo_point', 'photo', 'status', 'description', 'status_history')
 
 
 class PhotoSerializer(serializers.ModelSerializer):
