@@ -9,3 +9,6 @@ local_settings.py
 sandbox/*
 *.mo
 /project/**/migrations/
+psdata
+data
+logs
