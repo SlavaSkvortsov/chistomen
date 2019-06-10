@@ -4,7 +4,31 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+    restart: always
   mongodb:
-      image: mongo:4.1.10
-      volumes:
-        - './data:/data/db'
+    image: mongo:4.1.10
+    volumes:
+      - './data:/data/db'
+    restart: always
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: pswd
+      POSTGRES_USER: chistomen
+      POSTGRES_DB: chistomen
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./psdata:/var/lib/postgresql/data/pgdata
+  nginx:
+    image: nginx:latest
+    ports:
+      - '80:80'
+    volumes:
+      - ./docker/nginx:/etc/nginx/conf.d
+      - ./logs/nginx:/var/log/nginx
+    links:
+      - chistomen
+    restart: always
