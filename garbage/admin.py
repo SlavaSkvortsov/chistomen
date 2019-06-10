@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from garbage.models import Garbage, GarbageImage
+from garbage.models import Garbage, GarbageImage, GarbageDescription, StatusChanging
 
 
 class GarbageGarbageImageInline(admin.TabularInline):
@@ -9,7 +9,17 @@ class GarbageGarbageImageInline(admin.TabularInline):
     extra = 0
 
 
+class GarbageDescriptionInline(admin.TabularInline):
+    model = GarbageDescription
+    extra = 0
+
+
+class StatusChangingInline(admin.TabularInline):
+    model = StatusChanging
+    extra = 0
+
+
 @admin.register(Garbage)
 class GarbageAdmin(admin.ModelAdmin):
-    list_display = ['status', 'size', 'lat', 'lng']
-    inlines = [GarbageGarbageImageInline]
+    list_display = ['pk', 'status', 'size', 'lat', 'lng']
+    inlines = [GarbageGarbageImageInline, StatusChangingInline, GarbageDescriptionInline]
