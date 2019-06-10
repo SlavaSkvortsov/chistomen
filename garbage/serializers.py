@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from garbage.models import Garbage, GarbageImage, GarbageStatus, GarbageDescription, StatusChanging
-from django.contrib.gis.geos import Point
 from django.db import connection
 
 
@@ -16,7 +15,7 @@ class GarbageSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         photos = validated_data.pop('photos')
-        lng, lat = (validated_data.pop('lng'), validated_data.pop('lat'))
+        lng, lat = (float(validated_data.pop('lng')), float(validated_data.pop('lat')))
         user = validated_data.pop('user')
         garbage = Garbage(status=GarbageStatus.STATUS_PREPARING, lat=lat, lng=lng, **validated_data)
         garbage.save()
@@ -31,7 +30,7 @@ class GarbageSerializer(serializers.ModelSerializer):
 
     def update(self, garbage, validated_data):
         if 'lat' in validated_data and 'lng' in validated_data:
-            garbage.location = Point((validated_data.pop('lng'), validated_data.pop('lat')))
+            garbage.lat, garbage.lng = validated_data.pop('lat'), validated_data.pop('lng')
         if 'photo' in validated_data:
             for photo in GarbageImage.objects.filter(garbage=garbage, garbage_status=garbage.status):
                 photo.delete()
@@ -67,7 +66,7 @@ class GarbageShowSerializer(serializers.ModelSerializer):
     def get_photo(self, garbage):
         photos = list()
         for photo in garbage.photos.all():
-            photos.append(dict(id=photo.id, photo=photo.photo, status=photo.garbage_status))
+            photos.append(dict(id=photo.id, photo=photo.photo.url, status=photo.garbage_status))
         return photos
 
     def get_status(self, garbage):

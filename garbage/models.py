@@ -1,6 +1,17 @@
-from django.contrib.gis.db import models
+import os
+import uuid
+
+from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+
+
+def upload_image_to(instance, filename):
+    filename_base, filename_ext = os.path.splitext(filename)
+    return 'garbage/%s%s' % (
+        str(uuid.uuid4()),
+        filename_ext
+    )
 
 
 class GarbageException(Exception):
@@ -59,7 +70,9 @@ class Garbage(models.Model):
 
     def change_status(self, new_status, user):
         if new_status not in GarbageStatus.AVAILABLE_STATUS_CHANGE[self.status]:
-            raise GarbageException(data=dict(status=['Incorrect status for changing. You cant change status from #{} to #{}'.format(self.status, new_status)]))
+            raise GarbageException(data=dict(status=[
+                'Incorrect status for changing. You cant change status from #{} to #{}'.format(self.status,
+                                                                                               new_status)]))
         if new_status in GarbageStatus.INTERMEDIATE_STATUSES and not user.is_staff and self.owner != user:
             raise GarbageException(data=['Access denied. This garbage is using by another user'])
 
@@ -77,6 +90,10 @@ class Garbage(models.Model):
     def status_obj(self):
         return StatusChanging.objects.filter(garbage=self).order_by('-date')[0]
 
+    def __str__(self):
+        return "lat: {}, lng: {} size: {} status={}".format(self.lat, self.lng, self.get_size_display(),
+                                                            self.get_status_display())
+
 
 class StatusChanging(models.Model):
     garbage = models.ForeignKey(Garbage, related_name='statuses', null=True, on_delete=models.CASCADE)
@@ -87,7 +104,7 @@ class StatusChanging(models.Model):
 
 class GarbageImage(models.Model):
     garbage = models.ForeignKey(Garbage, related_name='photos', null=True, on_delete=models.CASCADE)
-    photo = models.CharField('Link on photo', max_length=300)
+    photo = models.ImageField(upload_to=upload_image_to)
     garbage_status = models.SmallIntegerField('Status', choices=GarbageStatus.STATUSES.items())
     added_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE)
 

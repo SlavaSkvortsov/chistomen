@@ -1,0 +1,10 @@
+version: "3"
+services:
+  chistomen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+  mongodb:
+      image: mongo:4.1.10
+      volumes:
+        - './data:/data/db'

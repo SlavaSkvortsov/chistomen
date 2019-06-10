@@ -16,16 +16,18 @@ import logging
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "*"
+]
 
-logging.basicConfig(format=u'%(filename)s[LINE:%(lineno)d]# %(levelname)-8s [%(asctime)s]  %(message)s', level=logging.DEBUG)
+logging.basicConfig(format=u'%(filename)s[LINE:%(lineno)d]# %(levelname)-8s [%(asctime)s]  %(message)s',
+                    level=logging.DEBUG)
 
 # Application definition
 
@@ -86,7 +88,6 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
@@ -110,7 +111,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
 
 LOGGING = {
     'version': 1,
@@ -137,12 +137,12 @@ LOGGING = {
             'handlers': ['db'],
             'level': 'DEBUG',
             'propagate': True,
-            },
+        },
         'login': {
             'handlers': ['db'],
             'level': 'DEBUG',
             'propagate': True,
-            },
+        },
     }
 }
 
@@ -165,7 +165,6 @@ SOCIAL_AUTH_VK_OAUTH2_KEY = '6073463'
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '888906823457-u6j91d99a1hucothqst0rj77b4529q6q.apps.googleusercontent.com'
 
-
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
 
 # Static files (CSS, JavaScript, Images)
@@ -173,11 +172,33 @@ SOCIAL_AUTH_URL_NAMESPACE = 'social'
 
 STATIC_URL = '/static/'
 
+# MongoDB Settings
+
+MONGO_HOST = "localhost"
+MONGO_PORT = 27017
+MONGO_DB_NAME = "chistomen"
+
+# Storage Settings
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+AWS_ACCESS_KEY_ID = "тыр тыр"
+AWS_SECRET_ACCESS_KEY = "тыр тыр"
+AWS_STORAGE_BUCKET_NAME = "chistomen-static"
+AWS_DEFAULT_ACL = "public-read"
+AWS_S3_SIGNATURE_VERSION = "s3v4"
+AWS_S3_REGION_NAME = "eu-central-1"
+AWS_QUERYSTRING_AUTH = False
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880 * 10
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',
+}
+
+
 try:
     from .local_settings import *
 except ImportError:
     pass
-
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
@@ -193,4 +214,4 @@ SOCIALACCOUNT_PROVIDERS = {
 
 from mongoengine import *
 
-connect('chistomen')
+connect(host=MONGO_HOST, port=MONGO_PORT, name=MONGO_DB_NAME)

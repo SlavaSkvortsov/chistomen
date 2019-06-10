@@ -12,3 +12,5 @@ urlpatterns = [
     url(r'^garbage/(?P<pk>[0-9]+)/description/(?P<pk_description>[0-9]+)/$', DelDescription.as_view()),
     url(r'^garbage/(?P<pk>[0-9]+)/status/$', ChangeStatus.as_view()),
 ]
+
+

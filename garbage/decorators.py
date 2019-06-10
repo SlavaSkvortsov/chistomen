@@ -46,7 +46,7 @@ def check_permission(*args, **kwargs):
 
 def authorization(view_func):
     def _decorator(self, request, *args, **kwargs):
-        if request.user.is_anonymous():
+        if request.user.is_anonymous:
             return Response(dict(message='Authorization failed!'), status=status.HTTP_401_UNAUTHORIZED)
         return view_func(self, request, *args, **kwargs)
     return _decorator

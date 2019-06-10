@@ -3,6 +3,7 @@ import logging
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import FileUploadParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -30,26 +31,27 @@ class GarbageView(APIView):
         lat = request.query_params.get('lat', None)
         radius = request.query_params.get('radius', None)
 
-        try:
-            lng = float(lng)
-        except ValueError:
-            raise ValidationError({
-                'lng': "param is invalid"
-            })
+        if lng and lat:
+            try:
+                lng = float(lng)
+            except TypeError:
+                raise ValidationError({
+                    'lng': "param is invalid"
+                })
 
-        try:
-            lat = float(lat)
-        except ValueError:
-            raise ValidationError({
-                'lat': "param is invalid"
-            })
+            try:
+                lat = float(lat)
+            except TypeError:
+                raise ValidationError({
+                    'lat': "param is invalid"
+                })
 
-        try:
-            radius = float(radius)
-        except ValueError:
-            raise ValidationError({
-                'radius': "param is invalid"
-            })
+            try:
+                radius = float(radius)
+            except TypeError:
+                raise ValidationError({
+                    'radius': "param is invalid"
+                })
 
         flt = dict()
         raw_points = None
@@ -118,6 +120,7 @@ class GarbageDetail(APIView):
 
 class GarbagePhoto(APIView):
     authentication_classes = [TokenAuthentication]
+    parser_class = (FileUploadParser,)
 
     @authorization
     @check_permission

@@ -11,3 +11,7 @@ rest_social_auth
 django-allauth==0.36.0
 djangorestframework-jwt==1.11.0
 google-auth
+mongoengine==0.16.1
+django-storages==1.7.1
+boto3==1.9.164
+Pillow==6.0.0

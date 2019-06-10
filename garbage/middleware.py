@@ -23,7 +23,7 @@ class LoggingMiddleware(object):
             request.logger = self._log
             start_time = time.time()
             if request.body:
-                request_body = "".join(["\n\n", request.body.decode("utf-8")])
+                request_body = "{}{}".format('\n\n', request.body)
 
             self._log.debug("Запрос #%s %s %s %s %s",
                             id(request), request.method, request.path, request.GET.dict(), request_body)
