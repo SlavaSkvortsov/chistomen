@@ -14,7 +14,7 @@ class GarbageSerializer(serializers.ModelSerializer):
         fields = ('id', 'lat', 'lng', 'size', 'solo_point', 'photos',)
 
     def create(self, validated_data):
-        photos = validated_data.pop('photos')
+        photos = validated_data.pop('photos', [])
         lng, lat = (float(validated_data.pop('lng')), float(validated_data.pop('lat')))
         user = validated_data.pop('user')
         garbage = Garbage(status=GarbageStatus.STATUS_PREPARING, lat=lat, lng=lng, **validated_data)
