@@ -8,22 +8,30 @@ class GarbageSerializer(serializers.ModelSerializer):
     solo_point = serializers.NullBooleanField(required=False)
     lat = serializers.DecimalField(max_digits=10, decimal_places=8, required=False)
     lng = serializers.DecimalField(max_digits=11, decimal_places=8, required=False)
+    description = serializers.CharField(default="")
 
     class Meta:
         model = Garbage
-        fields = ('id', 'lat', 'lng', 'size', 'solo_point', 'photos',)
+        fields = ('id', 'lat', 'lng', 'size', 'solo_point', 'photos', 'description')
 
     def create(self, validated_data):
         photos = validated_data.pop('photos', [])
         lng, lat = (float(validated_data.pop('lng')), float(validated_data.pop('lat')))
         user = validated_data.pop('user')
-        garbage = Garbage(status=GarbageStatus.STATUS_PREPARING, lat=lat, lng=lng, **validated_data)
+
+        description = validated_data.pop("description", "")
+
+        garbage = Garbage(status=GarbageStatus.STATUS_DIRTY, lat=lat, lng=lng, **validated_data)
         garbage.save()
         for photo in photos:
             image = GarbageImage(photo=photo, garbage_status=GarbageStatus.STATUS_PREPARING, garbage=garbage)
             image.save()
 
-        status_change = StatusChanging(garbage=garbage, changer=user, status=GarbageStatus.STATUS_PREPARING)
+        if description:
+            GarbageDescription(description=description, garbage_status=garbage.status, garbage=garbage,
+                               added_by=user).save()
+
+        status_change = StatusChanging(garbage=garbage, changer=user, status=garbage.status)
         status_change.save()
 
         return garbage
