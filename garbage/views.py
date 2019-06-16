@@ -83,7 +83,7 @@ class GarbageView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         garbage = serializer.save(user=request.user)
-        return Response(dict(id=garbage.pk), status=status.HTTP_201_CREATED)
+        return Response(GarbageShowSerializer(instance=garbage).data, status=status.HTTP_201_CREATED)
 
 
 class GarbageDetail(APIView):
@@ -115,7 +115,7 @@ class GarbageDetail(APIView):
 
         serializer.save()
 
-        return Response(status=status.HTTP_200_OK)
+        return Response(GarbageShowSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
 
 
 class GarbagePhoto(APIView):
@@ -145,14 +145,9 @@ class DelPhoto(APIView):
         """
         Deleting photo
         """
-        try:
-            photo = GarbageImage.objects.get(pk=pk_photo, garbage=request.garbage)
-        except GarbageImage.DoesNotExist:
-            return Response(dict(message='Cant find photo with id={}'.format(pk_photo)),
-                            status=status.HTTP_404_NOT_FOUND)
+        GarbageImage.objects.filter(photo__pk=pk_photo, garbage=request.garbage).delete()
 
-        photo.delete()
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class GarbageDescriptionView(APIView):
