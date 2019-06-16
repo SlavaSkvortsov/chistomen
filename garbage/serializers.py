@@ -87,7 +87,7 @@ class GarbageShowSerializer(serializers.ModelSerializer):
     def get_photo(self, garbage):
         photos = list()
         for photo in garbage.photos.all():
-            photos.append(dict(id=photo.id, photo=photo.photo.file.url, status=photo.garbage_status))
+            photos.append(dict(id=photo.photo.pk, photo=photo.photo.file.url, status=photo.garbage_status))
         return photos
 
     def get_status(self, garbage):
