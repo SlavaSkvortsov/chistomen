@@ -10,7 +10,7 @@ def sync_with_mongo(sender, instance: Garbage, **kwargs):
     MongoGarbagePoint.objects.filter(garbage_ptr=instance.pk).delete()
     MongoGarbagePoint.objects.create(
         garbage_ptr=instance.pk,
-        point=[instance.lng, instance.lat]
+        point=[float(instance.lng), float(instance.lat)]
     )
 
 

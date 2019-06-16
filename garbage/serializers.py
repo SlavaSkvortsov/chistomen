@@ -1,10 +1,11 @@
-from rest_framework import serializers
-from garbage.models import Garbage, GarbageImage, GarbageStatus, GarbageDescription, StatusChanging
+from rest_framework import serializers, exceptions
+from garbage.models import Garbage, GarbageImage, GarbageStatus, GarbageDescription, StatusChanging, MediaObject
 from django.db import connection
 
 
 class GarbageSerializer(serializers.ModelSerializer):
-    photos = serializers.ListField(child=serializers.CharField(), required=False)
+    photos = serializers.ListField(child=serializers.PrimaryKeyRelatedField(queryset=MediaObject.objects.all()),
+                                   required=False)
     solo_point = serializers.NullBooleanField(required=False)
     lat = serializers.DecimalField(max_digits=10, decimal_places=8, required=False)
     lng = serializers.DecimalField(max_digits=11, decimal_places=8, required=False)
@@ -24,7 +25,8 @@ class GarbageSerializer(serializers.ModelSerializer):
         garbage = Garbage(status=GarbageStatus.STATUS_DIRTY, lat=lat, lng=lng, **validated_data)
         garbage.save()
         for photo in photos:
-            image = GarbageImage(photo=photo, garbage_status=GarbageStatus.STATUS_PREPARING, garbage=garbage)
+            image = GarbageImage(photo=photo, garbage_status=garbage.status, garbage=garbage,
+                                 added_by=user)
             image.save()
 
         if description:
@@ -39,15 +41,26 @@ class GarbageSerializer(serializers.ModelSerializer):
     def update(self, garbage, validated_data):
         if 'lat' in validated_data and 'lng' in validated_data:
             garbage.lat, garbage.lng = validated_data.pop('lat'), validated_data.pop('lng')
-        if 'photo' in validated_data:
+
+        status = validated_data.get('status') if validated_data.get('status', None) else garbage.status
+        description = validated_data.pop("description", "")
+
+        if 'photos' in validated_data:
             for photo in GarbageImage.objects.filter(garbage=garbage, garbage_status=garbage.status):
                 photo.delete()
 
-            for photo in validated_data.pop('photo'):
+            for photo in validated_data.pop('photos'):
                 image = GarbageImage(photo=photo, garbage=garbage,
-                                     garbage_status=validated_data.get('status', None) if validated_data.get('status',
-                                                                                                             None) else garbage.status)
+                                     garbage_status=status, added_by=garbage.owner)
                 image.save()
+
+        if description:
+            if status != garbage.status:
+                GarbageDescription(description=description, garbage_status=status, garbage=garbage,
+                                   added_by=garbage.owner).save()
+            else:
+                GarbageDescription.objects.filter(garbage=garbage, garbage_status=status).update(
+                    description=description)
 
         for key, value in validated_data.items():
             setattr(garbage, key, value)
@@ -74,7 +87,7 @@ class GarbageShowSerializer(serializers.ModelSerializer):
     def get_photo(self, garbage):
         photos = list()
         for photo in garbage.photos.all():
-            photos.append(dict(id=photo.id, photo=photo.photo.url, status=photo.garbage_status))
+            photos.append(dict(id=photo.id, photo=photo.photo.file.url, status=photo.garbage_status))
         return photos
 
     def get_status(self, garbage):
@@ -107,16 +120,31 @@ class GarbageShowSerializer(serializers.ModelSerializer):
         fields = ('id', 'lat', 'lng', 'size', 'solo_point', 'photo', 'status', 'description', 'status_history')
 
 
+class MediaObjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MediaObject
+        fields = (
+            'file',
+        )
+
+
 class PhotoSerializer(serializers.ModelSerializer):
+    status = serializers.IntegerField(source='garbage_status', required=True)
+    photo = serializers.PrimaryKeyRelatedField(queryset=MediaObject.objects.all(), required=True)
+
     def create(self, validated_data):
-        photo = GarbageImage(photo=validated_data['photo'], garbage_status=validated_data['garbage'].status,
-                             garbage=validated_data['garbage'])
+        if validated_data['garbage_status'] > validated_data['garbage'].status:
+            raise exceptions.ValidationError(
+                {"garbage_status": "It's impossible to create photo for non-existing status"})
+
+        photo = GarbageImage(photo=validated_data['photo'], garbage_status=validated_data['garbage_status'],
+                             garbage=validated_data['garbage'], added_by=validated_data['garbage'].owner)
         photo.save()
         return photo
 
     class Meta:
         model = GarbageImage
-        fields = ('photo',)
+        fields = ('photo', 'status',)
 
 
 class DescriptionSerializer(serializers.ModelSerializer):

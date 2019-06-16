@@ -12,8 +12,8 @@ from .decorators import check_permission, authorization
 from .models import Garbage, GarbageImage, GarbageException, GarbageDescription
 from .serializers import (
     GarbageSerializer, PhotoSerializer, DescriptionSerializer,
-    GarbageShowSerializer, ChangeStatusSerializer
-)
+    GarbageShowSerializer, ChangeStatusSerializer,
+    MediaObjectSerializer)
 
 logger = logging.getLogger(__name__)
 
@@ -210,3 +210,20 @@ class ChangeStatus(APIView):
         except GarbageException:
             return Response(data=GarbageException.data, status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_200_OK)
+
+
+class MediaObjectAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    parser_class = (FileUploadParser,)
+
+    @authorization
+    def post(self, request):
+        """
+        Adding a new photo to garbage
+        """
+        serializer = MediaObjectSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        photo = serializer.save()
+        return Response(dict(id=photo.id), status=status.HTTP_201_CREATED)

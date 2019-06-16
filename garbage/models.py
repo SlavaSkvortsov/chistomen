@@ -105,7 +105,7 @@ class StatusChanging(models.Model):
 
 class GarbageImage(models.Model):
     garbage = models.ForeignKey(Garbage, related_name='photos', null=True, on_delete=models.CASCADE)
-    photo = models.ImageField(upload_to=upload_image_to)
+    photo = models.ForeignKey("garbage.MediaObject", on_delete=models.CASCADE)
     garbage_status = models.SmallIntegerField('Status', choices=GarbageStatus.STATUSES.items())
     added_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE)
 
@@ -115,6 +115,14 @@ class GarbageDescription(models.Model):
     description = models.CharField('Description', max_length=1000)
     garbage_status = models.SmallIntegerField('Status', choices=GarbageStatus.STATUSES.items())
     added_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE)
+
+
+class MediaObject(models.Model):
+    file = models.FileField(upload_to=upload_image_to)
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return u"Pk: {} Url: {}".format(self.pk, self.file.url)
 
 
 from .signals import *

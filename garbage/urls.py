@@ -1,7 +1,8 @@
 from django.conf.urls import url
 from django.contrib import admin
 from login.views import TokenAuthView
-from .views import GarbageView, GarbageDetail, GarbagePhoto, DelPhoto, GarbageDescriptionView, DelDescription, ChangeStatus
+from .views import GarbageView, GarbageDetail, GarbagePhoto, DelPhoto, GarbageDescriptionView, DelDescription, \
+    ChangeStatus, MediaObjectAPIView
 
 urlpatterns = [
     url(r'^garbage/$', GarbageView.as_view()),
@@ -11,6 +12,7 @@ urlpatterns = [
     url(r'^garbage/(?P<pk>[0-9]+)/description/$', GarbageDescriptionView.as_view()),
     url(r'^garbage/(?P<pk>[0-9]+)/description/(?P<pk_description>[0-9]+)/$', DelDescription.as_view()),
     url(r'^garbage/(?P<pk>[0-9]+)/status/$', ChangeStatus.as_view()),
+    url(r'^media/$', MediaObjectAPIView.as_view()),
 ]
 
 
