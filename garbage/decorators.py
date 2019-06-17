@@ -22,11 +22,11 @@ def check_permission(*args, **kwargs):
             if garbage.status in GarbageStatus.INTERMEDIATE_STATUSES and garbage.owner != request.user and not request.user.is_staff:
                 return Response(
                     dict(message='Permission denied! You cant edit this garbage!', status=status.HTTP_403_FORBIDDEN))
-            if not self.status_editing:
-                if garbage.status in GarbageStatus.FINAL_STATUSES and not request.user.is_staff:
-                    return Response(dict(message='Incorrect status for editing garbage! '
-                                                 'You should change status to some of intermediate status first',
-                                         status=status.HTTP_403_FORBIDDEN))
+            # if not self.status_editing:
+            #     if garbage.status in GarbageStatus.FINAL_STATUSES and not request.user.is_staff:
+            #         return Response(dict(message='Incorrect status for editing garbage! '
+            #                                      'You should change status to some of intermediate status first',
+            #                              status=status.HTTP_403_FORBIDDEN))
 
             return self.func(view_self, request, pk, *args, **kwargs)
 
